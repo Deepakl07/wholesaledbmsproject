@@ -20,20 +20,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         die("Connection failed: " . $conn->connect_error);
     }
 
-    // Insert data into the database
-    $sql = "INSERT INTO customers (name, customer_id, address) 
-            VALUES ('$name', '$customerID', '$address')";
+    // Prepare and bind the SQL statement
+    $sql_check = "SELECT * FROM customers WHERE customer_id = ?";
+    $stmt_check = $conn->prepare($sql_check);
+    $stmt_check->bind_param("s", $customerID);
+    $stmt_check->execute();
+    $result_check = $stmt_check->get_result();
 
-    if ($conn->query($sql) === TRUE) {
-        echo "New customer added successfully";
+    if ($result_check->num_rows > 0) {
+        echo "Error: Customer ID already exists. Please use a different ID.";
     } else {
-        echo "Error: " . $sql . "<br>" . $conn->error;
+        $stmt_check->close();
+
+        // Prepare and bind the SQL statement for insertion
+        $sql_insert = "INSERT INTO customers (name, customer_id, address) VALUES (?, ?, ?)";
+        $stmt_insert = $conn->prepare($sql_insert);
+        $stmt_insert->bind_param("sss", $name, $customerID, $address);
+
+        // Execute the insertion
+        if ($stmt_insert->execute()) {
+            echo "New customer added successfully";
+        } else {
+            echo "Error: " . $stmt_insert->error;
+        }
+
+        $stmt_insert->close();
     }
 
     // Close the database connection
     $conn->close();
 }
 ?>
+
 
 
 <!DOCTYPE html>
@@ -61,7 +79,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <ul>
                     <li class="selected-item"><a href="wholesaler.php">Home</a></li>
                     <li><a href="newtransaction.php">New Transaction</a></li>
-                    <li><a href="addsupplier.php">Add Stocks</a></li>
+                    <li><a href="addsupplier.php">New Suppliers</a></li>
+                    <li><a href="stocks.php">New stocks</a></li>
                     <li><a href="updatingstocks.php">Print Bill</a></li>
                     <li><a href="login.php">Logout</a></li>
                 </ul>
